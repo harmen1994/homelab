@@ -1,0 +1,84 @@
+---
+- name: 'Configures homelab'
+  hosts: 'proxmox'
+  tasks:
+  - name: Ensure enterprise repo file is not present
+    file:
+      path: /etc/apt/sources.list.d/pve-enterprise.list
+      state: absent
+  - name: Add No Subscription Repository
+    apt_repository:
+      repo: deb http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-no-subscription
+      filename: pve-no-subscription
+      state: present
+  - name: 'Upgrade system'
+    apt:
+      update_cache: yes
+      upgrade: dist
+  - name: 'Install APT dependencies'
+    apt:
+      name: 'vim'
+  - name: check if iommu is configured in the boot command
+    lineinfile:
+      backup: true
+      path: /etc/default/grub
+      regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=".*intel_iommu'
+      state: absent
+    check_mode: true
+    register: grub_cmdline_check
+    changed_when: false
+
+  - name: insert iommu if missing
+    lineinfile:
+      backrefs: true
+      path: /etc/default/grub
+      regexp: "^(GRUB_CMDLINE_LINUX_DEFAULT=\".*)\"$"
+      # '\1 intel_iommu=on iommu=pt pcie_acs_override=downstream,multifunction video=simplefb:off video=vesafb:off video=efifb:off video=vesa:off disable_vga=1 vfio_iommu_type1.allow_unsafe_interrupts=1 kvm.ignore_msrs=1 modprobe.blacklist=radeon,nouveau,nvidia,nvidiafb,nvidia-gpu,snd_hda_intel,snd_hda_codec_hdmi,i915"'
+      # Remove video=vesafb
+      # Add nomodeset
+      # Add video=efifb:off
+      #  iommu=pt pcie_acs_override=downstream,multifunction video=simplefb:off video=efifb:off video=vesa:off disable_vga=1 vfio_iommu_type1.allow_unsafe_interrupts=1 kvm.ignore_msrs=1 modprobe.blacklist=radeon,nouveau,nvidia,nvidiafb,nvidia-gpu,snd_hda_intel,snd_hda_codec_hdmi,i915 nomodeset video=efifb:off
+      # New 29 may
+      # If DRM comnflict add
+      line: '\1 i915.enable_gvt=1 kvm.ignore_msrs=1 intel_iommu=on iommu=pt pcie_acs_override=downstream,multifunction video=simplefb:off video=vesafb:off video=efifb:off video=vesa:off disable_vga=1 vfio_iommu_type1.allow_unsafe_interrupts=1"'
+    when: grub_cmdline_check.found == 0
+    notify: update grub
+
+  - name: 'Add iommu modules'
+    ansible.builtin.lineinfile:
+      dest: '/etc/modules'
+      line: "{{item}}"
+      state: 'present'
+    with_items:
+    - vfio
+    - vfio_iommu_type1
+    - vfio_pci
+    - vfio_virqfd
+    - '# For intel'
+    - kvmgt
+    - xengt
+    - vfio-mdev
+    notify: update initramfs
+
+  - name: 'Add iommu modules'
+    lineinfile:
+      dest: '/etc/modprobe.d/blacklist.conf'
+      line: "{{item}}"
+      state: 'present'
+      create: 'yes'
+    with_items:
+    - blacklist i915
+    - blacklist snd_hda_intel
+    - blacklist snd_hda_codec_hdmi
+    - blacklist snd_sof_pci
+    - blacklist video
+    notify: update initramfs
+
+
+
+  handlers:
+  - name: 'update grub'
+    shell: 'update-grub'
+  - name: 'update initramfs'
+    shell: 'update-initramfs -u -k all'
+
