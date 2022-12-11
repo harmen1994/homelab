@@ -40,9 +40,25 @@
       #  iommu=pt pcie_acs_override=downstream,multifunction video=simplefb:off video=efifb:off video=vesa:off disable_vga=1 vfio_iommu_type1.allow_unsafe_interrupts=1 kvm.ignore_msrs=1 modprobe.blacklist=radeon,nouveau,nvidia,nvidiafb,nvidia-gpu,snd_hda_intel,snd_hda_codec_hdmi,i915 nomodeset video=efifb:off
       # New 29 may
       # If DRM comnflict add
-      line: '\1 i915.enable_gvt=1 kvm.ignore_msrs=1 intel_iommu=on iommu=pt pcie_acs_override=downstream,multifunction video=simplefb:off video=vesafb:off video=efifb:off video=vesa:off disable_vga=1 vfio_iommu_type1.allow_unsafe_interrupts=1"'
+#      line: '\1 i915.enable_gvt=1 kvm.ignore_msrs=1 intel_iommu=on iommu=pt pcie_acs_override=downstream,multifunction video=simplefb:off video=vesafb:off video=efifb:off video=vesa:off disable_vga=1 vfio_iommu_type1.allow_unsafe_interrupts=1"'
+      line: '\1 intel_iommu=on iommu=pt pcie_acs_override=downstream,multifunction initcall_blacklist=sysfb_init video=simplefb:off video=vesafb:off video=efifb:off video=vesa:off disable_vga=1 vfio_iommu_type1.allow_unsafe_interrupts=1 kvm.ignore_msrs=1 modprobe.blacklist=radeon,nouveau,nvidia,nvidiafb,nvidia-gpu,snd_hda_intel,snd_hda_codec_hdmi,i915"'
     when: grub_cmdline_check.found == 0
     notify: update grub
+
+  - name: Download Windows
+    ansible.builtin.get_url:
+      url: https://www.itechtics.com/?dl_id=173
+      dest: /var/lib/vz/template/iso/windows10.iso
+
+  - name: Download virtio
+    ansible.builtin.get_url:
+      url: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+      dest: /var/lib/vz/template/iso/virtio-win.iso
+
+  - name: Download ubuntu
+    ansible.builtin.get_url:
+      url: https://releases.ubuntu.com/22.04/ubuntu-22.04.1-desktop-amd64.iso
+      dest: /var/lib/vz/template/iso/ubuntu2004.iso
 
   - name: 'Add iommu modules'
     ansible.builtin.lineinfile:
@@ -55,9 +71,9 @@
     - vfio_pci
     - vfio_virqfd
     - '# For intel'
-    - kvmgt
-    - xengt
-    - vfio-mdev
+#    - kvmgt
+#    - xengt
+#    - vfio-mdev
     notify: update initramfs
 
   - name: 'Add iommu modules'
@@ -70,8 +86,8 @@
     - blacklist i915
     - blacklist snd_hda_intel
     - blacklist snd_hda_codec_hdmi
-    - blacklist snd_sof_pci
-    - blacklist video
+#    - blacklist snd_sof_pci
+#    - blacklist video
     notify: update initramfs
 
 
