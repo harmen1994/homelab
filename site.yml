@@ -47,18 +47,23 @@
 
   - name: Download Windows
     ansible.builtin.get_url:
-      url: https://www.itechtics.com/?dl_id=173
-      dest: /var/lib/vz/template/iso/windows10.iso
+      url: "{{item.url}}"
+      dest: "/var/lib/vz/template/iso/{{item.name}}.iso"
+    loop:
+      - { url: https://www.itechtics.com/?dl_id=173, name: windows10 }
+      - { url: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso, name: virtio-win }
+      - { url: https://releases.ubuntu.com/22.04/ubuntu-22.04.1-desktop-amd64.iso, name: windows10 }
+      - { url: https://download.freenas.org/13.0/STABLE/U3.1/x64/TrueNAS-13.0-U3.1.iso, name: TrueNAS-13 }
 
-  - name: Download virtio
-    ansible.builtin.get_url:
-      url: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
-      dest: /var/lib/vz/template/iso/virtio-win.iso
+#  - name: Download virtio
+#    ansible.builtin.get_url:
+#      url: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+#      dest: /var/lib/vz/template/iso/virtio-win.iso
 
-  - name: Download ubuntu
-    ansible.builtin.get_url:
-      url: https://releases.ubuntu.com/22.04/ubuntu-22.04.1-desktop-amd64.iso
-      dest: /var/lib/vz/template/iso/ubuntu2004.iso
+#  - name: Download ubuntu
+#    ansible.builtin.get_url:
+#      url: https://releases.ubuntu.com/22.04/ubuntu-22.04.1-desktop-amd64.iso
+#      dest: /var/lib/vz/template/iso/ubuntu2004.iso
 
   - name: 'Add iommu modules'
     ansible.builtin.lineinfile:
